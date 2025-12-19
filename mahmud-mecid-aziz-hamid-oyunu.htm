@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XIX. Yüzyıl Islahat Eşleştirme - Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Performans ve Akıcılık Odaklı CSS */
+        .draggable {
+            cursor: grab;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            will-change: transform;
+            transform: translateZ(0);
+            user-select: none;
+            touch-action: none;
+        }
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(0.97) translateZ(0);
+        }
+        .drag-over {
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+            box-shadow: inset 0 0 15px rgba(245, 158, 11, 0.1);
+        }
+        .drop-zone {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 220px;
+        }
+        .item-enter {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* İnce detaylar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900 p-2 md:p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Üst Bilgi Paneli -->
+        <header class="flex justify-between items-center mb-6 bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tighter">
+                    Islahat Avcısı <span class="text-indigo-600">v2.2</span>
+                </h1>
+                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Tarih Bilgini Konuştur, Raporunu Al</p>
+            </div>
+            <div class="bg-slate-900 text-white px-6 py-2.5 rounded-2xl flex flex-col items-center shadow-lg">
+                <span class="text-[10px] font-bold uppercase tracking-widest opacity-60">Kuyrukta</span>
+                <span id="counter" class="text-2xl font-black leading-none">0</span>
+            </div>
+        </header>
+
+        <!-- Sürükleme Alanı (Havuz) -->
+        <section class="mb-8">
+            <div id="active-pool" class="flex flex-wrap gap-2.5 p-5 bg-white rounded-[2rem] shadow-sm border-2 border-slate-100 min-h-[110px] items-center justify-center">
+                <!-- Islahatlar buraya akacak -->
+            </div>
+        </section>
+
+        <!-- Padişah Kutuları -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <!-- II. Mahmut -->
+            <div class="drop-zone border-2 border-dashed border-slate-300 rounded-[2.5rem] p-5 bg-white flex flex-col items-center" data-sultan="II. Mahmut">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner">💂</div>
+                <h3 class="font-black text-sm text-red-600 mb-4 uppercase tracking-widest">II. Mahmut</h3>
+                <div class="w-full space-y-2 slot-container custom-scrollbar"></div>
+            </div>
+
+            <!-- Abdülmecid -->
+            <div class="drop-zone border-2 border-dashed border-slate-300 rounded-[2.5rem] p-5 bg-white flex flex-col items-center" data-sultan="Abdülmecid">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner">📜</div>
+                <h3 class="font-black text-sm text-blue-600 mb-4 uppercase tracking-widest">Abdülmecid</h3>
+                <div class="w-full space-y-2 slot-container custom-scrollbar"></div>
+            </div>
+
+            <!-- Abdülaziz -->
+            <div class="drop-zone border-2 border-dashed border-slate-300 rounded-[2.5rem] p-5 bg-white flex flex-col items-center" data-sultan="Abdülaziz">
+                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner">⚓</div>
+                <h3 class="font-black text-sm text-emerald-600 mb-4 uppercase tracking-widest">Abdülaziz</h3>
+                <div class="w-full space-y-2 slot-container custom-scrollbar"></div>
+            </div>
+
+            <!-- II. Abdülhamid -->
+            <div class="drop-zone border-2 border-dashed border-slate-300 rounded-[2.5rem] p-5 bg-white flex flex-col items-center" data-sultan="II. Abdülhamid">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3 text-2xl shadow-inner">🏗️</div>
+                <h3 class="font-black text-sm text-purple-600 mb-4 uppercase tracking-widest">II. Abdülhamid</h3>
+                <div class="w-full space-y-2 slot-container custom-scrollbar"></div>
+            </div>
+        </section>
+
+        <!-- Alt Kontrol Paneli -->
+        <div class="flex flex-col items-center gap-5">
+            <div id="final-msg" class="hidden text-center bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-indigo-50 w-full max-w-xl">
+                <h4 class="text-2xl font-black text-slate-800 mb-2">ANALİZ TAMAMLANDI 🏁</h4>
+                <p id="stats-text" class="text-slate-600 font-medium mb-6"></p>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button id="report-btn" class="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg">
+                        HATALARIMI İNDİR (.TXT)
+                    </button>
+                    <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-indigo-100">
+                        YENİDEN BAŞLA
+                    </button>
+                </div>
+            </div>
+            
+            <button id="finish-btn" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-5 rounded-2xl font-black shadow-xl shadow-emerald-100 transition-all active:scale-95 text-lg uppercase tracking-tighter">
+                KONTROL ET VE BİTİR
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const database = [
+            // II. Mahmut
+            { t: "Sekban-ı Cedid", s: "II. Mahmut" },
+            { t: "Eşkinci Ocağı", s: "II. Mahmut" },
+            { t: "Vaka-i Hayriye (1826): Yeniçeri Ocağı'nın Kaldırılması", s: "II. Mahmut" },
+            { t: "Asakir-i Mansure-i Muhammediye", s: "II. Mahmut" },
+            { t: "Redif Birlikleri", s: "II. Mahmut" },
+            { t: "Mehterhane'nin Kaldırılıp Mızıka-ı Hümayun'un Kurulması", s: "II. Mahmut" },
+            { t: "Tımar Sisteminin Kaldırılması", s: "II. Mahmut" },
+            { t: "Asker ve Vergi İçin İlk Nüfus Sayımı", s: "II. Mahmut" },
+            { t: "Mekteb-i Harbiye", s: "II. Mahmut" },
+            { t: "Mekteb-i Tıbbiye", s: "II. Mahmut" },
+            { t: "Darü’l Şûray-ı Askerî", s: "II. Mahmut" },
+            { t: "Silah Fabrikası Kurulması", s: "II. Mahmut" },
+            { t: "Ticaret Nezareti", s: "II. Mahmut" },
+            { t: "Bakırköy’de Bez Fabrikası", s: "II. Mahmut" },
+            { t: "Gümrük Vergisinde Yerli Tüccara Kolaylık", s: "II. Mahmut" },
+            { t: "Feshane'nin Kurulması", s: "II. Mahmut" },
+            { t: "Yerli Malı Kullanımı Teşviki", s: "II. Mahmut" },
+            { t: "Mülk Sayımı Yapılması", s: "II. Mahmut" },
+            { t: "Mahmudiye Marşı", s: "II. Mahmut" },
+            { t: "Darü’ş Şûra-ı Babıali", s: "II. Mahmut" },
+            { t: "Divan-ı Hümayun'un Kaldırılması", s: "II. Mahmut" },
+            { t: "Heyet-i Vükela (Nazırlıklar/Bakanlıklar) Kuruldu", s: "II. Mahmut" },
+            { t: "Muhtarlıklar Teşkilatı", s: "II. Mahmut" },
+            { t: "Posta Teşkilatı ve Pasaport Uygulaması", s: "II. Mahmut" },
+            { t: "Müsadere Sisteminin Kaldırılması", s: "II. Mahmut" },
+            { t: "Takvim-i Vekayi: İlk Resmi Gazete", s: "II. Mahmut" },
+            { t: "Karantina Uygulaması", s: "II. Mahmut" },
+            { t: "Rüştiyeler (Ortaokul) Açılması", s: "II. Mahmut" },
+            { t: "İstanbul'da İlköğretim Zorunluluğu", s: "II. Mahmut" },
+            { t: "Mekteb-i Ulumu Edebiye", s: "II. Mahmut" },
+            { t: "Mekteb-i Maarif-i Adliye", s: "II. Mahmut" },
+            { t: "Tercüme Odaları", s: "II. Mahmut" },
+            { t: "İlk Kez Avrupa'ya Eğitim Amaçlı Öğrenci Gönderilmesi", s: "II. Mahmut" },
+            { t: "Memura Fes, Ceket, Pantolon Zorunluluğu", s: "II. Mahmut" },
+
+            // Abdülmecid
+            { t: "Tanzimat Fermanı (Gülhane-i Hattı Hümayun)", s: "Abdülmecid" },
+            { t: "Islahat Fermanı", s: "Abdülmecid" },
+            { t: "Ticaret Mahkemeleri Kurulması", s: "Abdülmecid" },
+            { t: "İltizam Sisteminin Kaldırılması", s: "Abdülmecid" },
+            { t: "Ticaret Kanunu Çıkarılması", s: "Abdülmecid" },
+            { t: "İlk Belediye Teşkilatı", s: "Abdülmecid" },
+            { t: "İl Genel Meclisleri", s: "Abdülmecid" },
+            { t: "Meclis-i Ali Tanzimat", s: "Abdülmecid" },
+            { t: "Posta Nezareti Kurulması", s: "Abdülmecid" },
+            { t: "Muhassıl Vergisi", s: "Abdülmecid" },
+            { t: "İlk Telgraf Hattı", s: "Abdülmecid" },
+            { t: "İdadiler (Lise)", s: "Abdülmecid" },
+            { t: "Asakar-i Şahane", s: "Abdülmecid" },
+            { t: "Jandarma ve Polis Teşkilatı", s: "Abdülmecid" },
+            { t: "Bank-ı Dersaadet (Galatalı Bankerler)", s: "Abdülmecid" },
+            { t: "Bank-ı Osmanî (Para Basma Yetkili)", s: "Abdülmecid" },
+            { t: "Kaime-i Nakdîye (İlk Kağıt Para)", s: "Abdülmecid" },
+            { t: "İlk Demiryolu (İzmir - Aydın)", s: "Abdülmecid" },
+            { t: "Mecidiye Adlı Para", s: "Abdülmecid" },
+            { t: "Kimlik Kartı Uygulaması", s: "Abdülmecid" },
+            { t: "Şirket-i Hayriye (İlk A.Ş.)", s: "Abdülmecid" },
+            { t: "Arazi Kanunnamesi", s: "Abdülmecid" },
+            { t: "Gedik Usulünün Kaldırılması", s: "Abdülmecid" },
+            { t: "Muhassıllık Sistemi", s: "Abdülmecid" },
+            { t: "Islah-ı Sanayi Komisyonu", s: "Abdülmecid" },
+            { t: "Darülmuallimin (Erkek Öğretmen Okulu)", s: "Abdülmecid" },
+            { t: "Encümen-i Daniş (Bilim Heyeti)", s: "Abdülmecid" },
+            { t: "Meclis-i Maarif-i Umumiye (MEB)", s: "Abdülmecid" },
+            { t: "Mekteb-i Mülkiye", s: "Abdülmecid" },
+            { t: "Tercüman-ı Ahval (İlk Özel Gazete)", s: "Abdülmecid" },
+            { t: "İlk Kız Rüştiyeleri ve İdadileri", s: "Abdülmecid" },
+            { t: "Vaka-i Tıbbiye Dergisi", s: "Abdülmecid" },
+            { t: "Ceride-i Havadis", s: "Abdülmecid" },
+            { t: "İlk Osmanlı Tiyatrosu (Güllü Agop)", s: "Abdülmecid" },
+
+            // Abdülaziz
+            { t: "İlk Yurtdışı Seyahati (Avrupa)", s: "Abdülaziz" },
+            { t: "Dünyanın Üçüncü Büyük Deniz Filosu", s: "Abdülaziz" },
+            { t: "Mecelle (Ahmet Cevdet Paşa)", s: "Abdülaziz" },
+            { t: "Nizamiye Mahkemeleri", s: "Abdülaziz" },
+            { t: "1864 Vilayet Nizamnamesi", s: "Abdülaziz" },
+            { t: "Şûray-ı Devlet (Danıştay) Kurulması", s: "Abdülaziz" },
+            { t: "Divan-ı Ahkâm-ı Adliye (Yargıtay) Kurulması", s: "Abdülaziz" },
+            { t: "Beylerbeyi ve Çırağan Sarayları", s: "Abdülaziz" },
+            { t: "Memleket Sandıkları", s: "Abdülaziz" },
+            { t: "Emniyet Sandıkları", s: "Abdülaziz" },
+            { t: "İlk Posta Pulu Basımı", s: "Abdülaziz" },
+            { t: "Hilal-i Ahmer Cemiyeti", s: "Abdülaziz" },
+            { t: "Ramazan Kararnamesi", s: "Abdülaziz" },
+            { t: "Darüşşafaka Lisesi", s: "Abdülaziz" },
+            { t: "Maarif-i Umumiye Nizamnamesi (1869)", s: "Abdülaziz" },
+            { t: "Galatasaray Sultanisi", s: "Abdülaziz" },
+            { t: "Darülmuallimat (Kadın Öğretmen Okulu)", s: "Abdülaziz" },
+            { t: "Diyojen Adlı Mizah Dergisi (Teodor Kasap)", s: "Abdülaziz" },
+            { t: "Darülfünun (İlk Üniversite Temeli)", s: "Abdülaziz" },
+            { t: "İlk Resim Sergisi (Şeker Ahmet Paşa)", s: "Abdülaziz" },
+            { t: "Ceride-i Mehakim Gazetesi", s: "Abdülaziz" },
+            { t: "Fatma Aliye (İlk Kadın Romancı)", s: "Abdülaziz" },
+
+            // II. Abdülhamid
+            { t: "Maarifperver Padişah", s: "II. Abdülhamid" },
+            { t: "I. Meşrutiyet'in İlanı", s: "II. Abdülhamid" },
+            { t: "II. Meşrutiyet'in İlanı", s: "II. Abdülhamid" },
+            { t: "İlk Anayasa: Kanun-i Esasi (1876)", s: "II. Abdülhamid" },
+            { t: "Muharrem Kararnamesi", s: "II. Abdülhamid" },
+            { t: "Düyun-u Umumiye İdaresi'nin Kurulması", s: "II. Abdülhamid" },
+            { t: "Hamidiye Alayları (Köy Koruculuğu Benzeri)", s: "II. Abdülhamid" },
+            { t: "İslamcılık Dış Politika (Panislamizm)", s: "II. Abdülhamid" },
+            { t: "Jurnal Teşkilatı", s: "II. Abdülhamid" },
+            { t: "Erkan-ı Harbiye Vekaleti", s: "II. Abdülhamid" },
+            { t: "Tarih-i Osmanî Encümeni", s: "II. Abdülhamid" },
+            { t: "İstanbul Arkeoloji Müzesi (Asar-ı Atika)", s: "II. Abdülhamid" },
+            { t: "Sanayi-i Nefise Mektebi (Osman Hamdi Bey)", s: "II. Abdülhamid" },
+            { t: "Berlin - Boğazlar - Bağdat Demiryolu (3B Projesi)", s: "II. Abdülhamid" },
+            { t: "Hicaz Demiryolu", s: "II. Abdülhamid" },
+            { t: "Darülaceze Kurulması", s: "II. Abdülhamid" },
+            { t: "Ziraat Bankası'nın Kurulması (1888)", s: "II. Abdülhamid" },
+            { t: "Tercüman-ı Hakikat Gazetesi", s: "II. Abdülhamid" },
+            { t: "Himaye-i Etfal (Çocuk Esirgeme Temeli)", s: "II. Abdülhamid" },
+            { t: "Haydarpaşa Tren Garı", s: "II. Abdülhamid" },
+            { t: "Darülhayr-ı Ali", s: "II. Abdülhamid" },
+            { t: "Hamidiye Etfal (Şişli Etfal Hastanesi)", s: "II. Abdülhamid" },
+            { t: "İlk Deniz Müzesi'nin Açılması", s: "II. Abdülhamid" },
+            { t: "Reji İdaresi", s: "II. Abdülhamid" },
+            { t: "Telgraf Ağı ve Telgraf Mektepleri", s: "II. Abdülhamid" },
+            { t: "Ziraat, Baytar, Orman, Engelliler Okulları", s: "II. Abdülhamid" },
+            { t: "Şükufezar (Kadın Dergisi)", s: "II. Abdülhamid" }
+        ];
+
+        let queue = [];
+        let activeItems = [];
+        const poolLimit = 5;
+        let userMistakes = [];
+
+        function init() {
+            queue = [...database].sort(() => Math.random() - 0.5);
+            document.getElementById('counter').textContent = queue.length;
+            refillPool();
+        }
+
+        function refillPool() {
+            const pool = document.getElementById('active-pool');
+            while (activeItems.length < poolLimit && queue.length > 0) {
+                const item = queue.pop();
+                activeItems.push(item);
+                const el = createDraggable(item);
+                pool.appendChild(el);
+            }
+            document.getElementById('counter').textContent = queue.length + activeItems.length;
+            
+            if (queue.length === 0 && activeItems.length === 0) {
+                document.getElementById('finish-btn').classList.remove('hidden');
+            }
+        }
+
+        function createDraggable(item) {
+            const el = document.createElement('div');
+            el.className = 'draggable bg-white border border-slate-200 px-4 py-2.5 rounded-2xl shadow-sm text-[11px] font-black text-slate-700 hover:border-indigo-400 hover:shadow-md item-enter text-center';
+            el.draggable = true;
+            el.textContent = item.t;
+            el.dataset.title = item.t;
+            
+            el.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.t);
+                el.style.opacity = "0.4";
+            });
+            el.addEventListener('dragend', () => el.style.opacity = "1");
+            return el;
+        }
+
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const title = e.dataTransfer.getData('text/plain');
+                const el = document.querySelector(`[data-title="${title}"]`);
+                
+                if (el) {
+                    const sourceContainer = el.parentElement;
+                    const targetContainer = zone.querySelector('.slot-container');
+                    
+                    if (sourceContainer === targetContainer) return;
+
+                    targetContainer.appendChild(el);
+
+                    // Eğer havuzdan geldiyse havuzu doldur
+                    if (sourceContainer.id === 'active-pool') {
+                        activeItems = activeItems.filter(i => i.t !== title);
+                        refillPool();
+                    }
+                }
+            });
+        });
+
+        document.getElementById('finish-btn').addEventListener('click', () => {
+            let corrects = 0;
+            userMistakes = [];
+            
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                const sultan = zone.dataset.sultan;
+                zone.querySelectorAll('.draggable').forEach(item => {
+                    const original = database.find(d => d.t === item.dataset.title);
+                    if (original.s === sultan) {
+                        item.className = 'p-3 rounded-xl text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 w-full mb-1 shadow-sm';
+                        corrects++;
+                    } else {
+                        item.className = 'p-3 rounded-xl text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 w-full mb-1 shadow-sm';
+                        userMistakes.push({
+                            reform: original.t,
+                            userChoice: sultan,
+                            correctChoice: original.s
+                        });
+                    }
+                });
+            });
+
+            document.getElementById('finish-btn').classList.add('hidden');
+            const finalMsg = document.getElementById('final-msg');
+            finalMsg.classList.remove('hidden');
+            document.getElementById('stats-text').textContent = `${database.length} ıslahattan ${corrects} tanesini doğru yerleştirdin.`;
+            
+            if (userMistakes.length === 0) {
+                document.getElementById('report-btn').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('report-btn').addEventListener('click', () => {
+            let report = "RUHİ ATAKAN BEKMEZCİ - ISLAHAT HATA RAPORU\n";
+            report += "-------------------------------------------\n\n";
+            userMistakes.forEach((m, i) => {
+                report += `${i + 1}. Hatalı Eşleştirme:\n`;
+                report += `   Islahat: ${m.reform}\n`;
+                report += `   Senin Seçimin: ${m.userChoice}\n`;
+                report += `   Doğru Padişah: ${m.correctChoice}\n\n`;
+            });
+            report += `Toplam Yanlış: ${userMistakes.length}\n`;
+            report += `Tarih: ${new Date().toLocaleString('tr-TR')}\n`;
+            report += "\nKomando disipliniyle bir sonraki denemede full bekliyoruz!";
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'islahat_analiz_raporu.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        init();
+    </script>
+</body>
+</html>
