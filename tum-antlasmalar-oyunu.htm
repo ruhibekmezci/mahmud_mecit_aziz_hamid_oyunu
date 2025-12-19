@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Osmanlı Antlaşmalar & Padişahlar - Güncel Liste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Performans ve Kullanıcı Deneyimi */
+        .sultan-card {
+            transition: transform 0.1s ease, opacity 0.1s ease, background-color 0.2s ease;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            user-select: none; /* Metin seçilmesini engeller */
+            -webkit-user-select: none;
+            cursor: pointer;
+        }
+        .sultan-card:active {
+            transform: scale(0.95) translateZ(0);
+        }
+        .correct-anim {
+            animation: success 0.3s ease-out;
+        }
+        @keyframes success {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); background-color: #10b981; color: white; }
+            100% { transform: scale(1); }
+        }
+        .wrong-anim {
+            animation: shake 0.3s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+        .hidden-card {
+            display: none !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-900 p-2 md:p-6">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Üst Panel -->
+        <header class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 mb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black text-slate-800 uppercase leading-none">Diplomasi Avcısı <span class="text-indigo-600">v3.2</span></h1>
+                <p class="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">GÜNCEL VERİTABANI</p>
+            </div>
+            <div class="flex gap-2">
+                <div class="bg-emerald-50 px-4 py-1 rounded-xl text-center border border-emerald-100">
+                    <span id="correct-count" class="text-lg font-black text-emerald-600">0</span>
+                </div>
+                <div class="bg-indigo-50 px-4 py-1 rounded-xl text-center border border-indigo-100">
+                    <span id="remaining-count" class="text-lg font-black text-indigo-600">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mevcut Soru -->
+        <div id="game-container" class="mb-6">
+            <div id="treaty-card" class="bg-indigo-600 p-6 md:p-10 rounded-[2.5rem] shadow-xl text-white text-center relative overflow-hidden">
+                <div class="relative z-10">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.3em] opacity-60 mb-2 block">ŞU MADDE HANGİ DÖNEME/KİŞİYE AİT?</span>
+                    <h2 id="current-treaty-name" class="text-2xl md:text-4xl font-black mb-3">...</h2>
+                    <p id="treaty-desc" class="text-indigo-100 text-xs md:text-sm italic opacity-80 max-w-2xl mx-auto">Yükleniyor...</p>
+                </div>
+                <div class="absolute -right-10 -bottom-10 text-9xl opacity-10 pointer-events-none font-black italic">TR</div>
+            </div>
+        </div>
+
+        <!-- Arama ve Filtreleme -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div class="md:col-span-3">
+                <input type="text" id="sultan-search" placeholder="İsim ara... (Örn: Abdülhamid, Fatih, TBMM)" 
+                    class="w-full p-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-indigo-500 focus:outline-none font-bold text-slate-700">
+            </div>
+            <select id="period-filter" class="p-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-indigo-500 focus:outline-none font-bold text-slate-700 cursor-pointer">
+                <option value="all">Tüm Dönemler</option>
+                <option value="kurulus">Kuruluş</option>
+                <option value="yukselme">Yükselme</option>
+                <option value="duraklama">Duraklama</option>
+                <option value="gerileme">Gerileme</option>
+                <option value="dagilma">Dağılma</option>
+                <option value="tbmm">TBMM / Süreç Sonu</option>
+            </select>
+        </div>
+
+        <!-- Padişah / Kişi Listesi -->
+        <div id="sultan-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-8 max-h-[380px] overflow-y-auto p-1 custom-scrollbar">
+            <!-- Dinamik dolacak -->
+        </div>
+
+        <!-- Bitiş Paneli -->
+        <div id="final-panel" class="hidden bg-white p-10 rounded-[3rem] shadow-2xl text-center border-4 border-indigo-50">
+            <h3 class="text-3xl font-black text-slate-800 mb-2">OPERASYON TAMAM! 🎖️</h3>
+            <p id="final-stats" class="text-slate-600 font-bold mb-8"></p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="download-report" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg">DETAYLI RAPORU İNDİR (.TXT)</button>
+                <button onclick="location.reload()" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg">BAŞTAN BAŞLA</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allEntities = [
+            { n: "I. Osman", p: "kurulus" }, { n: "Orhan Bey", p: "kurulus" }, { n: "I. Murad", p: "kurulus" },
+            { n: "Yıldırım Bayezid", p: "kurulus" }, { n: "I. Mehmed", p: "kurulus" }, { n: "II. Murad", p: "kurulus" },
+            { n: "II. Mehmed (Fatih)", p: "yukselme" }, { n: "II. Bayezid", p: "yukselme" }, { n: "Yavuz Sultan Selim", p: "yukselme" },
+            { n: "I. Süleyman (Kanuni)", p: "yukselme" }, { n: "II. Selim", p: "yukselme" }, { n: "III. Murad", p: "yukselme" },
+            { n: "III. Mehmed", p: "duraklama" }, { n: "I. Ahmed", p: "duraklama" }, { n: "I. Mustafa", p: "duraklama" },
+            { n: "II. Osman (Genç)", p: "duraklama" }, { n: "IV. Murad", p: "duraklama" }, { n: "İbrahim", p: "duraklama" },
+            { n: "IV. Mehmed", p: "duraklama" }, { n: "II. Süleyman", p: "duraklama" }, { n: "II. Ahmed", p: "duraklama" },
+            { n: "II. Mustafa", p: "gerileme" }, { n: "III. Ahmed", p: "gerileme" }, { n: "I. Mahmud", p: "gerileme" },
+            { n: "III. Osman", p: "gerileme" }, { n: "III. Mustafa", p: "gerileme" }, { n: "I. Abdülhamid", p: "gerileme" },
+            { n: "III. Selim", p: "gerileme" }, { n: "IV. Mustafa", p: "gerileme" }, { n: "II. Mahmud", p: "dagilma" },
+            { n: "Abdülmecid", p: "dagilma" }, { n: "Abdülaziz", p: "dagilma" }, { n: "V. Murad", p: "dagilma" },
+            { n: "II. Abdülhamid", p: "dagilma" }, { n: "V. Mehmed Reşad", p: "dagilma" }, { n: "VI. Mehmed Vahdeddin", p: "dagilma" },
+            { n: "TBMM Hükümeti", p: "tbmm" }
+        ];
+
+        const treatiesDatabase = [
+            // Kuruluş
+            { t: "1444 Edirne-Segedin Antlaşması", s: "II. Murad", d: "Kuruluş Dönemi - Macaristan ile." },
+            // Yükselme
+            { t: "1479 İstanbul Antlaşması", s: "II. Mehmed (Fatih)", d: "Yükselme Dönemi - Venedik ile." },
+            { t: "1533 İstanbul (İbrahim Paşa) Antlaşması", s: "I. Süleyman (Kanuni)", d: "Yükselme Dönemi - Avusturya ile." },
+            { t: "1555 Amasya Antlaşması", s: "I. Süleyman (Kanuni)", d: "Yükselme Dönemi - İran (Safevi) ile ilk resmi antlaşma." },
+            { t: "1590 Ferhat Paşa Antlaşması", s: "III. Murad", d: "Yükselme Sonu - Doğuda en geniş sınırlara ulaşıldı." },
+            // Duraklama
+            { t: "1606 Zitvatorok Antlaşması", s: "I. Ahmed", d: "Duraklama - Avusturya arşidükü padişaha denk sayıldı." },
+            { t: "1612 Nasuh Paşa Antlaşması", s: "I. Ahmed", d: "Duraklama - İran ile." },
+            { t: "1621 Hotin Antlaşması", s: "II. Osman (Genç)", d: "Duraklama - Lehistan seferi sonrası." },
+            { t: "1639 Kasr-ı Şirin Antlaşması", s: "IV. Murad", d: "Duraklama - Günümüz Türkiye-İran sınırının temeli." },
+            { t: "1664 Vasvar Antlaşması", s: "IV. Mehmed", d: "Duraklama - Avusturya ile." },
+            { t: "1672 Bucaş Antlaşması", s: "IV. Mehmed", d: "Duraklama - Batıda en geniş sınırlara ulaşıldı." },
+            { t: "1676 Zoravno Antlaşması", s: "IV. Mehmed", d: "Duraklama - Lehistan ile." },
+            { t: "1681 Bahçesaray (Çehrin) Antlaşması", s: "IV. Mehmed", d: "Duraklama - Rusya ile ilk resmi antlaşma." },
+            { t: "1699 Karlofça Antlaşması", s: "II. Mustafa", d: "Duraklama Sonu - Batıda ilk büyük toprak kaybı." },
+            // Gerileme
+            { t: "1700 İstanbul Antlaşması", s: "II. Mustafa", d: "Gerileme Başı - Rusya ile." },
+            { t: "1711 Prut Antlaşması", s: "III. Ahmed", d: "Gerileme - Kaybedilen yerlerin geri alınma umudu doğdu." },
+            { t: "1718 Pasarofça Antlaşması", s: "III. Ahmed", d: "Gerileme - Lale Devri başladı." },
+            { t: "1724 İstanbul Antlaşması", s: "III. Ahmed", d: "Gerileme - Rusya ile İran paylaşımı." },
+            { t: "1732 Ahmet Paşa Antlaşması", s: "I. Mahmud", d: "Gerileme - İran ile." },
+            { t: "1746 Kerden (II. Kasr-ı Şirin)", s: "I. Mahmud", d: "Gerileme - İran ile barışın kalıcı hale gelmesi." },
+            { t: "1739 Belgrad Antlaşması", s: "I. Mahmud", d: "Gerileme - Batıda kazanılan son kazançlı antlaşma." },
+            { t: "1774 Küçük Kaynarca Antlaşması", s: "I. Abdülhamid", d: "Gerileme - Rusya'ya karşı ağır yenilgi." },
+            { t: "1779 Aynalıkavak Tenkihnamesi", s: "I. Abdülhamid", d: "Gerileme - Rusya ile Kırım meselesi." },
+            { t: "1791 Ziştovi Antlaşması", s: "III. Selim", d: "Gerileme - Avusturya ile." },
+            { t: "1792 Yaş Antlaşması", s: "III. Selim", d: "Gerileme Sonu - Kırım'ın Rusya'ya ait olduğu kabul edildi." },
+            // Dağılma
+            { t: "1802 El-Ariş ve Paris Antlaşmaları", s: "III. Selim", d: "Dağılma - Fransa'nın Mısır'dan çekilmesi." },
+            { t: "1809 Kale-i Sultaniye Antlaşması", s: "II. Mahmud", d: "Dağılma - İngiltere ile." },
+            { t: "1838 Balta Limanı Ticaret Antlaşması", s: "II. Mahmud", d: "Dağılma - Ekonomik bağımsızlığın darbe alması." },
+            { t: "1812 Bükreş Antlaşması", s: "II. Mahmud", d: "Dağılma - Sırplara imtiyaz verildi." },
+            { t: "1829 Edirne Antlaşması", s: "II. Mahmud", d: "Dağılma - Yunanistan bağımsız oldu." },
+            { t: "1833 Hünkar İskelesi Antlaşması", s: "II. Mahmud", d: "Dağılma - Boğazlar sorunu ortaya çıktı." },
+            { t: "1833 Kütahya Görüşmeleri", s: "II. Mahmud", d: "Dağılma - Mısır Valisi Kavalalı ile." },
+            { t: "1840 Londra Antlaşması", s: "Abdülmecid", d: "Dağılma - Mısır sorununun çözümü." },
+            { t: "1841 Londra Boğazlar Konferansı", s: "Abdülmecid", d: "Dağılma - Boğazlar uluslararası statü kazandı." },
+            { t: "1856 Paris Antlaşması", s: "Abdülmecid", d: "Dağılma - Osmanlı Avrupa devleti sayıldı." },
+            { t: "1878 Ayastefanos Antlaşması", s: "II. Abdülhamid", d: "Dağılma - Rusya ile (Yürürlüğe girmedi)." },
+            { t: "1878 Berlin Antlaşması", s: "II. Abdülhamid", d: "Dağılma - Üç Balkan devleti bağımsız oldu." },
+            { t: "1876 Tersane (İstanbul) Konferansı", s: "II. Abdülhamid", d: "Dağılma - Meşrutiyet ilanına sebep süreç." },
+            { t: "1897 İstanbul Antlaşması", s: "II. Abdülhamid", d: "Dağılma - Yunanistan ile (Dömeke sonrası)." },
+            { t: "1912 Uşi Antlaşması", s: "V. Mehmed Reşad", d: "Dağılma - Trablusgarp Savaşı sonrası." },
+            { t: "1912-1913 Londra Konferansı", s: "V. Mehmed Reşad", d: "Dağılma - I. Balkan Savaşı sonu." },
+            { t: "1913 İstanbul / Atina Antlaşmaları", s: "V. Mehmed Reşad", d: "Dağılma - Balkan devletleri ile sınır düzenlemeleri." },
+            { t: "1918 Mondros Ateşkesi", s: "VI. Mehmed Vahdeddin", d: "Süreç Sonu - Osmanlı fiilen bitti." },
+            { t: "1920 Sevr Antlaşması", s: "VI. Mehmed Vahdeddin", d: "Süreç Sonu - Mebusan Meclisi onaylamadığı için geçersiz." },
+            { t: "1919 Amasya Görüşmeleri", s: "VI. Mehmed Vahdeddin", d: "Süreç Sonu - İstanbul Hükümeti Temsil Heyeti'ni tanıdı." },
+            { t: "1920 Bilecik Görüşmesi", s: "VI. Mehmed Vahdeddin", d: "Süreç Sonu - TBMM ile yapılan görüşme." },
+            // TBMM Süreci
+            { t: "1921 Londra Konferansı", s: "TBMM Hükümeti", d: "Milli Mücadele - TBMM'nin ilk diplomatik başarısı sayılabilir." },
+            { t: "1922 Mudanya Ateşkesi", s: "TBMM Hükümeti", d: "Milli Mücadele - Kurtuluş Savaşı'nın silahlı safhası bitti." },
+            { t: "1923 Lozan Antlaşması", s: "TBMM Hükümeti", d: "Milli Mücadele - Türkiye Cumhuriyeti'nin tapusu." }
+        ];
+
+        let currentIdx = 0;
+        let corrects = 0;
+        let mistakes = [];
+        let deck = [];
+
+        function setup() {
+            const grid = document.getElementById('sultan-grid');
+            allEntities.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'sultan-card bg-white border border-slate-200 p-3 rounded-xl text-center text-[10px] font-black shadow-sm hover:border-indigo-400';
+                el.textContent = item.n;
+                el.dataset.name = item.n;
+                el.dataset.period = item.p;
+                el.onclick = () => check(item.n);
+                grid.appendChild(el);
+            });
+
+            deck = [...treatiesDatabase].sort(() => Math.random() - 0.5);
+            updateRemaining();
+            next();
+        }
+
+        function filter() {
+            const search = document.getElementById('sultan-search').value.toLowerCase();
+            const period = document.getElementById('period-filter').value;
+            const cards = document.querySelectorAll('.sultan-card');
+
+            cards.forEach(card => {
+                const matchName = card.dataset.name.toLowerCase().includes(search);
+                const matchPeriod = period === 'all' || card.dataset.period === period;
+                if (matchName && matchPeriod) {
+                    card.classList.remove('hidden-card');
+                } else {
+                    card.classList.add('hidden-card');
+                }
+            });
+        }
+
+        function next() {
+            if (currentIdx >= deck.length) {
+                finish();
+                return;
+            }
+            const q = deck[currentIdx];
+            const card = document.getElementById('treaty-card');
+            card.classList.remove('correct-anim', 'wrong-anim');
+            document.getElementById('current-treaty-name').textContent = q.t;
+            document.getElementById('treaty-desc').textContent = q.d;
+            updateRemaining();
+        }
+
+        function updateRemaining() {
+            document.getElementById('remaining-count').textContent = deck.length - currentIdx;
+        }
+
+        function check(choice) {
+            const q = deck[currentIdx];
+            const card = document.getElementById('treaty-card');
+
+            if (choice === q.s) {
+                corrects++;
+                card.classList.add('correct-anim');
+                document.getElementById('correct-count').textContent = corrects;
+            } else {
+                card.classList.add('wrong-anim');
+                mistakes.push({ t: q.t, u: choice, c: q.s });
+            }
+
+            currentIdx++;
+            setTimeout(next, 300);
+        }
+
+        function finish() {
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('sultan-grid').classList.add('hidden');
+            document.querySelector('.grid').classList.add('hidden');
+            
+            const panel = document.getElementById('final-panel');
+            panel.classList.remove('hidden');
+            document.getElementById('final-stats').textContent = 
+                `${deck.length} maddelik listeden ${corrects} tanesini doğru bildin. Hata raporun hazır komando!`;
+        }
+
+        document.getElementById('download-report').onclick = () => {
+            let r = "OSMANLI DİPLOMASİ - HATA ANALİZİ\n";
+            r += "---------------------------------\n";
+            r += `Analiz Tarihi: ${new Date().toLocaleString('tr-TR')}\n`;
+            r += "---------------------------------\n\n";
+            
+            if(mistakes.length === 0) {
+                r += "HATASIZ OPERASYON! TEBRİKLER KOMANDO.";
+            } else {
+                mistakes.forEach((m, i) => {
+                    r += `${i+1}. MADDE: ${m.t}\n`;
+                    r += `   Senin Cevabın: ${m.u}\n`;
+                    r += `   Doğru Cevap  : ${m.c}\n\n`;
+                });
+            }
+            
+            const b = new Blob([r], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = 'diplomasi_analiz_raporu.txt';
+            a.click();
+        };
+
+        document.getElementById('sultan-search').oninput = filter;
+        document.getElementById('period-filter').onchange = filter;
+
+        window.onload = setup;
+    </script>
+</body>
+</html>

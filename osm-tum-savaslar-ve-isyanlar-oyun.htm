@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diplomasi Avcısı - Savaşlar ve İsyanlar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sultan-card {
+            transition: transform 0.1s ease, opacity 0.1s ease, background-color 0.2s ease;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+        }
+        .sultan-card:active {
+            transform: scale(0.95) translateZ(0);
+        }
+        .correct-anim {
+            animation: success 0.3s ease-out;
+        }
+        @keyframes success {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); background-color: #10b981; color: white; }
+            100% { transform: scale(1); }
+        }
+        .wrong-anim {
+            animation: shake 0.3s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+        .hidden-card {
+            display: none !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-900 p-2 md:p-6">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Üst Panel -->
+        <header class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-200 mb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black text-slate-800 uppercase leading-none">Diplomasi Avcısı <span class="text-indigo-600">v3.3</span></h1>
+                <p class="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">OSMANLI & MİLLİ MÜCADELE VERİTABANI</p>
+            </div>
+            <div class="flex gap-2">
+                <div class="bg-emerald-50 px-4 py-1 rounded-xl text-center border border-emerald-100">
+                    <span id="correct-count" class="text-lg font-black text-emerald-600">0</span>
+                </div>
+                <div class="bg-indigo-50 px-4 py-1 rounded-xl text-center border border-indigo-100">
+                    <span id="remaining-count" class="text-lg font-black text-indigo-600">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mevcut Soru -->
+        <div id="game-container" class="mb-6">
+            <div id="treaty-card" class="bg-indigo-600 p-6 md:p-10 rounded-[2.5rem] shadow-xl text-white text-center relative overflow-hidden">
+                <div class="relative z-10">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.3em] opacity-60 mb-2 block">ŞU OLAY HANGİ PADIŞAH VEYA DÖNEME AİT?</span>
+                    <h2 id="current-treaty-name" class="text-2xl md:text-4xl font-black mb-3">Yükleniyor...</h2>
+                    <p id="treaty-desc" class="text-indigo-100 text-xs md:text-sm italic opacity-80 max-w-2xl mx-auto">Hazır ol komando...</p>
+                </div>
+                <div class="absolute -right-10 -bottom-10 text-9xl opacity-10 pointer-events-none font-black italic">TR</div>
+            </div>
+        </div>
+
+        <!-- Arama ve Filtreleme -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div class="md:col-span-3">
+                <input type="text" id="sultan-search" placeholder="İsim ara (Örn: I. Murad, Yavuz, Vahdeddin)..." 
+                    class="w-full p-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-indigo-500 focus:outline-none font-bold text-slate-700">
+            </div>
+            <select id="period-filter" class="p-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-indigo-500 focus:outline-none font-bold text-slate-700 cursor-pointer">
+                <option value="all">Tüm Dönemler</option>
+                <option value="kurulus">Kuruluş (1299-1453)</option>
+                <option value="yukselme">Yükselme (1453-1579)</option>
+                <option value="duraklama">Duraklama (1579-1699)</option>
+                <option value="gerileme">Gerileme (1699-1792)</option>
+                <option value="dagilma">Dağılma (1792-1922)</option>
+            </select>
+        </div>
+
+        <!-- Padişah / Kişi Listesi -->
+        <div id="sultan-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mb-8 max-h-[380px] overflow-y-auto p-1 custom-scrollbar">
+            <!-- Dinamik dolacak -->
+        </div>
+
+        <!-- Bitiş Paneli -->
+        <div id="final-panel" class="hidden bg-white p-10 rounded-[3rem] shadow-2xl text-center border-4 border-indigo-50">
+            <h3 class="text-3xl font-black text-slate-800 mb-2">TARİH YAZILDI! 🎖️</h3>
+            <p id="final-stats" class="text-slate-600 font-bold mb-8"></p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="download-report" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg">HATA ANALİZİNİ İNDİR</button>
+                <button onclick="location.reload()" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg">YENİDEN BAŞLA</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allEntities = [
+            { n: "Osman Bey", p: "kurulus" }, { n: "Orhan Bey", p: "kurulus" }, { n: "I. Murad", p: "kurulus" },
+            { n: "I. Bayezid (Yıldırım)", p: "kurulus" }, { n: "I. Mehmed (Çelebi)", p: "kurulus" }, { n: "II. Murad", p: "kurulus" },
+            { n: "II. Mehmed (Fatih)", p: "yukselme" }, { n: "II. Bayezid", p: "yukselme" }, { n: "I. Selim (Yavuz)", p: "yukselme" },
+            { n: "I. Süleyman (Kanuni)", p: "yukselme" }, { n: "II. Selim", p: "yukselme" },
+            { n: "III. Mehmed", p: "duraklama" }, { n: "II. Osman (Genç)", p: "duraklama" }, { n: "IV. Murad", p: "duraklama" },
+            { n: "IV. Mehmed", p: "duraklama" }, { n: "II. Süleyman", p: "duraklama" }, { n: "II. Ahmed", p: "duraklama" },
+            { n: "II. Mustafa", p: "duraklama" },
+            { n: "III. Ahmed", p: "gerileme" }, { n: "I. Mahmud", p: "gerileme" }, { n: "III. Mustafa", p: "gerileme" },
+            { n: "I. Abdülhamid", p: "gerileme" }, { n: "III. Selim", p: "gerileme" },
+            { n: "II. Mahmud", p: "dagilma" }, { n: "Abdülmecid", p: "dagilma" }, { n: "II. Abdülhamid", p: "dagilma" },
+            { n: "V. Mehmed Reşad", p: "dagilma" }, { n: "VI. Mehmed Vahdeddin", p: "dagilma" }
+        ];
+
+        const treatiesDatabase = [
+            // Kuruluş
+            { t: "1302 Koyunhisar (Bafeus) Savaşı", s: "Osman Bey", d: "Bizans'a karşı kazanılan ilk büyük zafer." },
+            { t: "1329 Pelekanon (Maltepe) Savaşı", s: "Orhan Bey", d: "Bizans ile yapılan ve Kocaeli yarımadasının fethini sağlayan savaş." },
+            { t: "1363 Sazlıdere Savaşı", s: "I. Murad", d: "Edirne'nin fethi ve Balkanlar'ın kapısının açılması." },
+            { t: "1364 Sırpsındığı Savaşı", s: "I. Murad", d: "Osmanlı'nın Haçlı ordusuna karşı kazandığı ilk zafer." },
+            { t: "1371 Çirmen Savaşı", s: "I. Murad", d: "Sırp güçlerinin yenilgiye uğratıldığı ve Balkanlar'da ilerleyişin sürdüğü savaş." },
+            { t: "1388 Ploşnik Bozgunu", s: "I. Murad", d: "Balkan ittifakına karşı alınan yenilgi, ancak ilerleyişi durduramadı." },
+            { t: "1389 I. Kosova Savaşı", s: "I. Murad", d: "Osmanlı'nın Balkan hakimiyetini sağlamlaştırdığı, I. Murad'ın şehit düştüğü savaş." },
+            { t: "1396 Niğbolu Savaşı", s: "I. Bayezid (Yıldırım)", d: "Büyük bir Haçlı ordusunun imha edilmesi." },
+            { t: "1402 Ankara Savaşı", s: "I. Bayezid (Yıldırım)", d: "Timur'a karşı alınan yenilgi ve Fetret Devri'nin başlangıcı." },
+            { t: "1416 Çalı Bey Deniz Savaşı", s: "I. Mehmed (Çelebi)", d: "Venedik ile yapılan ilk deniz savaşı." },
+            { t: "1420 Şeyh Bedrettin İsyanı", s: "I. Mehmed (Çelebi)", d: "İlk dini ve sosyal içerikli isyan." },
+            { t: "1421 Düzmece Mustafa İsyanı", s: "I. Mehmed (Çelebi)", d: "Taht kavgası ve iç karışıklık." },
+            { t: "1444 Varna Savaşı", s: "II. Murad", d: "Edirne-Segedin sonrası Haçlı ordusunun imha edildiği savaş." },
+            { t: "1446 Buçuktepe İsyanı", s: "II. Murad", d: "Osmanlı tarihindeki ilk yeniçeri isyanı." },
+            { t: "1448 II. Kosova Savaşı", s: "II. Murad", d: "Balkanlar'ın kesin olarak Türk yurdu olduğunun tescillendiği zafer." },
+            // Yükselme
+            { t: "1453 İstanbul'un Fethi", s: "II. Mehmed (Fatih)", d: "Yeni Çağ'ın başlangıcı ve imparatorluğa geçiş." },
+            { t: "1473 Otlukbeli Savaşı", s: "II. Mehmed (Fatih)", d: "Akkoyunlu Uzun Hasan'a karşı kazanılan doğu zaferi." },
+            { t: "1485-1491 Osmanlı-Memlük Savaşları", s: "II. Bayezid", d: "Ağaçayırı mevkii, iki büyük Türk devleti arasındaki çekişme." },
+            { t: "1511 Şahkulu İsyanı", s: "II. Bayezid", d: "Safevi destekli, Şii nitelikli büyük isyan." },
+            { t: "1514 Çaldıran Savaşı", s: "I. Selim (Yavuz)", d: "Safevi Devleti'ne karşı büyük darbe." },
+            { t: "1515 Turnadağ Savaşı", s: "I. Selim (Yavuz)", d: "Dulkadiroğulları'na son verilerek Anadolu Türk birliğinin sağlanması." },
+            { t: "1516 Mercidabık Savaşı", s: "I. Selim (Yavuz)", d: "Memlükler'e karşı kazanılan Suriye zaferi." },
+            { t: "1517 Ridaniye Savaşı", s: "I. Selim (Yavuz)", d: "Memlük Devleti'nin sonu ve hilafetin Osmanlı'ya geçişi." },
+            { t: "1519 Bozoklu Celal İsyanı", s: "I. Selim (Yavuz)", d: "Celali İsyanları'nın başlangıcı sayılan olay." },
+            { t: "1521 Belgrad'ın Fethi", s: "I. Süleyman (Kanuni)", d: "Avrupa seferleri için ana üs elde edildi." },
+            { t: "1521 Canberdi Gazali İsyanı", s: "I. Süleyman (Kanuni)", d: "Memlük Devleti'ni yeniden kurma amacıyla çıkan isyan." },
+            { t: "1522 Rodos’un Fethi", s: "I. Süleyman (Kanuni)", d: "Doğu Akdeniz'de güvenliğin artırılması." },
+            { t: "1524 Ahmet Paşa İsyanı", s: "I. Süleyman (Kanuni)", d: "Mısır'da sadrazamlık verilmediği için çıkan isyan." },
+            { t: "1526 Mohaç Meydan Muharebesi", s: "I. Süleyman (Kanuni)", d: "2 saatte Macar ordusunun imha edildiği zafer." },
+            { t: "1526 Baba Zünnun İsyanı", s: "I. Süleyman (Kanuni)", d: "Vergi sistemi yüzünden çıkan sosyal içerikli isyan." },
+            { t: "1527 Kalender Çelebi İsyanı", s: "I. Süleyman (Kanuni)", d: "Şii ve sosyal nitelikli geniş çaplı isyan." },
+            { t: "1529 I. Viyana Kuşatması", s: "I. Süleyman (Kanuni)", d: "Viyana kapılarına kadar dayanılan ilk sefer." },
+            { t: "1532 Almanya Seferi", s: "I. Süleyman (Kanuni)", d: "Charles V'e meydan okunması." },
+            { t: "1538 Preveze Deniz Zaferi", s: "I. Süleyman (Kanuni)", d: "Akdeniz'in Türk gölü haline gelmesi." },
+            { t: "1555 Düzmece Mustafa İsyanı", s: "I. Süleyman (Kanuni)", d: "Şehzade Mustafa simülasyonu / Taht iddiaları." },
+            { t: "1560 Cerbe Deniz Savaşı", s: "I. Süleyman (Kanuni)", d: "Preveze'den sonraki en büyük deniz zaferlerinden biri." },
+            { t: "1566 Zigetvar Seferi", s: "I. Süleyman (Kanuni)", d: "Kanuni'nin son seferi." },
+            { t: "1571 Kıbrıs'ın Fethi", s: "II. Selim", d: "Doğu Akdeniz hakimiyetinin tamamlanması." },
+            { t: "1571 İnebahtı Deniz Savaşı", s: "II. Selim", d: "Donanmanın ilk kez yakıldığı büyük yenilgi." },
+            // Duraklama
+            { t: "1596 Haçova Meydan Muharebesi", s: "III. Mehmed", d: "Avusturya'ya karşı kazanılan son büyük meydan savaşı." },
+            { t: "1599 Karayazıcı İsyanı", s: "III. Mehmed", d: "Duraklama döneminin etkili Celali isyanlarından." },
+            { t: "1622 Yeniçeri Ayaklanması", s: "II. Osman (Genç)", d: "Padişahın katledilmesiyle sonuçlanan ilk askeri darbe." },
+            { t: "1632 İstanbul (Sipahi/Yeniçeri) İsyanları", s: "IV. Murad", d: "Dönemin disiplin arayışını başlatan isyanlar." },
+            { t: "1635 Revan Seferi", s: "IV. Murad", d: "İran üzerine düzenlenen doğu seferi." },
+            { t: "1638 Bağdat Seferi", s: "IV. Murad", d: "Bağdat'ın geri alındığı ve 'Bağdat Fatihi' unvanının kazanıldığı sefer." },
+            { t: "1656 Vak'a-i Vakvakiye (Çınar Vakası)", s: "IV. Mehmed", d: "Saray önündeki çınar ağacına asılan devlet adamları." },
+            { t: "1658 Abaza Hasan Paşa İsyanı", s: "IV. Mehmed", d: "Anadolu'da ordu içi rekabet sonucu çıkan isyan." },
+            { t: "1663 Uyvar Kalesi'nin Fethi", s: "IV. Mehmed", d: "Avusturya'ya karşı başarı: 'Uyvar önünde bir Türk gibi kuvvetli'." },
+            { t: "1672 Lehistan Seferi", s: "IV. Mehmed", d: "Bucaş Antlaşması ile batıda en geniş sınırlara ulaşıldı." },
+            { t: "1683 II. Viyana Kuşatması", s: "IV. Mehmed", d: "Büyük bozgun ve geri çekilmenin başlangıcı." },
+            { t: "1683-1699 Kutsal İttifak Savaşları", s: "II. Mustafa", d: "Salankamen, Zenta savaşları ve Karlofça'ya giden süreç." },
+            { t: "1703 Edirne Vakası", s: "II. Mustafa", d: "Padişahın tahttan indirildiği ve devlet merkezinin tartışıldığı olay." },
+            // Gerileme
+            { t: "1711 Prut Savaşı", s: "III. Ahmed", d: "Rus ordusunun kuşatılması ve kaybedilen yerlerin geri alınma umudu." },
+            { t: "1715-1718 Venedik-Avusturya Savaşları", s: "III. Ahmed", d: "Petrovaradin yenilgisi ve Pasarofça'ya giden süreç." },
+            { t: "1730 Patrona Halil İsyanı", s: "III. Ahmed", d: "Lale Devri'ni bitiren büyük isyan." },
+            { t: "1736-1739 Osmanlı-Rus-Avusturya Savaşları", s: "I. Mahmud", d: "Belgrad'ın geri alındığı son kazançlı savaşlar." },
+            { t: "1768-1774 Osmanlı-Rus Savaşı", s: "III. Mustafa", d: "Çeşme Baskını'nın yaşandığı ve Küçük Kaynarca ile biten savaş." },
+            { t: "1787-1792 Osmanlı-Rus-Avusturya Savaşları", s: "III. Selim", d: "Ziştovi ve Yaş Antlaşmaları ile sonuçlanan dönem." },
+            { t: "1807 Kabakçı Mustafa İsyanı", s: "III. Selim", d: "Nizam-ı Cedid'e tepki olarak çıkan ve III. Selim'i tahttan indiren isyan." },
+            { t: "1798-1801 Napolyon'un Mısır'ı İşgali", s: "III. Selim", d: "Akka Kuşatması'nda Cezzar Ahmed Paşa'nın Napolyon'u durdurması." },
+            // Dağılma
+            { t: "1804 Sırp İsyanı", s: "II. Mahmud", d: "Osmanlı'da ilk isyan eden azınlık." },
+            { t: "1806-1812 Osmanlı-Rus Savaşı", s: "II. Mahmud", d: "Bükreş Antlaşması ile sonuçlanan savaş." },
+            { t: "1821 Yunan (Rum) İsyanı", s: "II. Mahmud", d: "Bağımsızlık kazanan ilk azınlık (Edirne Antlaşması ile)." },
+            { t: "1827 Navarin Baskını", s: "II. Mahmud", d: "Osmanlı ve Mısır donanmalarının yakıldığı olay." },
+            { t: "1828-1829 Osmanlı-Rus Savaşı", s: "II. Mahmud", d: "Yunanistan'ın bağımsızlığına yol açan yenilgi." },
+            { t: "1831-1833 Kavalalı Savaşı ve İsyanı", s: "II. Mahmud", d: "Mısır Valisi'ne karşı Kütahya Görüşmeleri ve Hünkar İskelesi." },
+            { t: "1853-1856 Kırım Savaşı", s: "Abdülmecid", d: "Rusya'ya karşı Avrupalı devletlerin desteğiyle kazanılan savaş." },
+            { t: "1859 Kuleli Vakası", s: "Abdülmecid", d: "Tanzimat'a tepki ve padişahı indirme girişimi." },
+            { t: "1877-1878 Osmanlı-Rus Savaşı (93 Harbi)", s: "II. Abdülhamid", d: "Büyük toprak kayıpları ve Berlin Antlaşması." },
+            { t: "1897 Osmanlı-Yunan Savaşı", s: "II. Abdülhamid", d: "Dömeke Meydan Muharebesi zaferi." },
+            { t: "1909 31 Mart Vakası", s: "II. Abdülhamid", d: "Rejime karşı ilk isyan, Hareket Ordusu tarafından bastırıldı." },
+            { t: "1911-1912 Trablusgarp Savaşı", s: "V. Mehmed Reşad", d: "Uşi Antlaşması ile Kuzey Afrika'daki son toprak kaybı." },
+            { t: "1912-1913 Balkan Savaşları", s: "V. Mehmed Reşad", d: "Balkanlar'daki toprakların büyük kısmının kaybı." },
+            { t: "1914-1918 I. Dünya Savaşı", s: "V. Mehmed Reşad", d: "Cihan Harbi ve imparatorluğun sonu." },
+            { t: "1919-1922 Milli Mücadele Süreci", s: "VI. Mehmed Vahdeddin", d: "İnönü, Sakarya ve Büyük Taarruz'un yaşandığı kurtuluş süreci." }
+        ];
+
+        let currentIdx = 0;
+        let corrects = 0;
+        let mistakes = [];
+        let deck = [];
+
+        function setup() {
+            const grid = document.getElementById('sultan-grid');
+            grid.innerHTML = '';
+            
+            allEntities.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'sultan-card bg-white border border-slate-200 p-3 rounded-xl text-center text-[10px] font-black shadow-sm hover:border-indigo-400';
+                el.textContent = item.n;
+                el.dataset.name = item.n;
+                el.dataset.period = item.p;
+                el.onclick = () => check(item.n);
+                grid.appendChild(el);
+            });
+
+            deck = [...treatiesDatabase].sort(() => Math.random() - 0.5);
+            updateRemaining();
+            next();
+        }
+
+        function filter() {
+            const search = document.getElementById('sultan-search').value.toLowerCase();
+            const period = document.getElementById('period-filter').value;
+            const cards = document.querySelectorAll('.sultan-card');
+
+            cards.forEach(card => {
+                const matchName = card.dataset.name.toLowerCase().includes(search);
+                const matchPeriod = period === 'all' || card.dataset.period === period;
+                if (matchName && matchPeriod) {
+                    card.classList.remove('hidden-card');
+                } else {
+                    card.classList.add('hidden-card');
+                }
+            });
+        }
+
+        function next() {
+            if (currentIdx >= deck.length) {
+                finish();
+                return;
+            }
+            const q = deck[currentIdx];
+            const card = document.getElementById('treaty-card');
+            card.classList.remove('correct-anim', 'wrong-anim');
+            document.getElementById('current-treaty-name').textContent = q.t;
+            document.getElementById('treaty-desc').textContent = q.d;
+            updateRemaining();
+        }
+
+        function updateRemaining() {
+            document.getElementById('remaining-count').textContent = deck.length - currentIdx;
+        }
+
+        function check(choice) {
+            const q = deck[currentIdx];
+            const card = document.getElementById('treaty-card');
+
+            if (choice === q.s) {
+                corrects++;
+                card.classList.add('correct-anim');
+                document.getElementById('correct-count').textContent = corrects;
+            } else {
+                card.classList.add('wrong-anim');
+                mistakes.push({ t: q.t, u: choice, c: q.s });
+            }
+
+            currentIdx++;
+            setTimeout(next, 300);
+        }
+
+        function finish() {
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('sultan-grid').classList.add('hidden');
+            document.querySelector('.grid').classList.add('hidden');
+            
+            const panel = document.getElementById('final-panel');
+            panel.classList.remove('hidden');
+            document.getElementById('final-stats').textContent = 
+                `${deck.length} olaydan ${corrects} tanesini doğru eşleştirdin. Tarih bilgin analiz edildi!`;
+        }
+
+        document.getElementById('download-report').onclick = () => {
+            let r = "DİPLOMASİ AVCIŞI - TARİH ANALİZ RAPORU\n";
+            r += "=========================================\n";
+            r += `Analiz Tarihi: ${new Date().toLocaleString('tr-TR')}\n`;
+            r += `Başarı Oranı: %${Math.round((corrects/deck.length)*100)}\n`;
+            r += "=========================================\n\n";
+            
+            if(mistakes.length === 0) {
+                r += "MÜKEMMEL SKOR! TARİH SENİN İŞİN.";
+            } else {
+                r += "HATALI EŞLEŞTİRMELER:\n\n";
+                mistakes.forEach((m, i) => {
+                    r += `${i+1}. OLAY: ${m.t}\n`;
+                    r += `   Seçtiğin: ${m.u}\n`;
+                    r += `   Gerçek Sahibi: ${m.c}\n\n`;
+                });
+            }
+            
+            const b = new Blob([r], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = 'tarih_analiz_raporu.txt';
+            a.click();
+        };
+
+        document.getElementById('sultan-search').oninput = filter;
+        document.getElementById('period-filter').onchange = filter;
+
+        window.onload = setup;
+    </script>
+</body>
+</html>
